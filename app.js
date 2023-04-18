@@ -100,13 +100,14 @@ async function verifyLogin(email, code, req, res, failUrl) {
         req.session.qr = null;
         req.session.email = null;
         req.session.token = jwtoken.sign(email, 'supersecret');
-        var email = encodeURIComponent(email);
-        // Redirect to "private" page
-        return res.redirect('/private?email=' + email);
+
+        return res.redirect('/private');
     } catch (err) {
         throw err;
     }
 }
+
+
 
 
 
@@ -122,7 +123,6 @@ app.post('/login', (req, res) => {
     return verifyLogin(email, code, req, res, '/login')
 })
 
-
 const jwtMiddleware = jwt({
     secret: 'supersecret',
     algorithms: ["HS256"],
@@ -131,8 +131,14 @@ const jwtMiddleware = jwt({
     }
 });
 
-app.get('/private', jwtMiddleware, (req, res) => {
-    return res.render('private.ejs', { email: req.query.email })
+
+app.get('/private', (req, res) => {
+    jwtoken.verify(req.session.token, 'supersecret', (err, payload) => {
+        if (err) {
+            return res.send('Token is not Valid');
+        }
+        return res.render('private.ejs', { email: payload })
+    })
 })
 
 app.get('/logout', jwtMiddleware, (req, res) => {
